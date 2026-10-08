@@ -38,14 +38,16 @@ def parse_review_output(raw: str) -> list[FeedbackSection]:
         json_str = json_match.group(1)
         try:
             data = json.loads(json_str)
-            return _parse_json_output(data)
+            if isinstance(data, dict):
+                return _parse_json_output(data)
         except json.JSONDecodeError:
             logger.warning("json_parsing_failed_in_fence", json_snippet=json_str[:100])
 
     # Try raw JSON
     try:
         data = json.loads(raw)
-        return _parse_json_output(data)
+        if isinstance(data, dict):
+            return _parse_json_output(data)
     except json.JSONDecodeError:
         logger.warning("raw_json_parsing_failed")
 
@@ -53,37 +55,16 @@ def parse_review_output(raw: str) -> list[FeedbackSection]:
     return _parse_plaintext_output(raw)
 
 
-def _parse_json_output(data: dict | list) -> list[FeedbackSection]:
+def _parse_json_output(data: dict) -> list[FeedbackSection]:
     """Parse structured JSON output.
 
     Args:
-        data: Parsed JSON object or array
+        data: Parsed JSON object
 
     Returns:
         List of FeedbackSection objects
     """
     sections = []
-
-    if isinstance(data, list):
-        for index, value in enumerate(data, start=1):
-            suggestions = []
-            if isinstance(value, dict):
-                candidate_suggestions = value.get("suggestions", [])
-                if isinstance(candidate_suggestions, list):
-                    suggestions = candidate_suggestions
-
-            content = json.dumps(value) if isinstance(value, dict | list) else str(value)
-            sections.append(
-                FeedbackSection(
-                    section_name=f"item_{index}",
-                    content=content,
-                    confidence=0.85,
-                    suggestions=suggestions,
-                )
-            )
-
-        logger.info("json_output_parsed", section_count=len(sections))
-        return sections
 
     # Handle both single-level and nested structures
     for key, value in data.items():

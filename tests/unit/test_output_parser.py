@@ -144,12 +144,20 @@ class TestOutputParser:
 
         result = parse_review_output(raw_output)
 
-        assert [section.section_name for section in result] == ["item_1", "item_2"]
-        assert [section.content for section in result] == [
-            "First feedback item",
-            "Second feedback item",
-        ]
-        assert all(isinstance(section, FeedbackSection) for section in result)
+        assert len(result) == 1
+        assert result[0].section_name == "general_feedback"
+        assert result[0].content == raw_output
+
+    def test_json_array_fallback_in_fence(self):
+        """Test handling of a JSON array wrapped in a code fence."""
+        array_output = json.dumps(["First feedback item", "Second feedback item"])
+        raw_output = f"```json\n{array_output}\n```"
+
+        result = parse_review_output(raw_output)
+
+        assert len(result) == 1
+        assert result[0].section_name == "general_feedback"
+        assert result[0].content == raw_output
 
     def test_very_long_plain_text(self):
         """Test parsing very long plain text."""
